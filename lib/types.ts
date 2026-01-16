@@ -40,3 +40,12 @@ export interface HistoricoVenta {
     precioRep: number;
     subtotalRep: number;
 }
+
+export type UserRole = 'admin' | 'cliente';
+
+export interface Profile {
+    id: string;
+    role: UserRole;
+    email?: string;
+    full_name?: string;
+}
