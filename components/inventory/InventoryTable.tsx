@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
-import { Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { useDebouncedCallback } from 'use-debounce';
+import { ImageViewerModal } from './ImageViewerModal';
 
 interface Column<T> {
     header: string;
@@ -48,6 +49,11 @@ export function InventoryTable<T extends Record<string, any>>({
     const currentLowStock = searchParams.get('lowStock') === 'true';
 
     const [searchTerm, setSearchTerm] = useState(currentSearch);
+
+    // Viewer State
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
+    const [selectedTitle, setSelectedTitle] = useState('');
 
     const handleSearch = useDebouncedCallback((term: string) => {
         const params = new URLSearchParams(searchParams);
@@ -162,6 +168,20 @@ export function InventoryTable<T extends Record<string, any>>({
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
+                                            {item.imagenes && item.imagenes.length > 0 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setSelectedTitle(item.descripRep || 'Imágenes');
+                                                        setSelectedImages(item.imagenes);
+                                                        setViewerOpen(true);
+                                                    }}
+                                                    title="Ver imágenes"
+                                                >
+                                                    <ImageIcon className="h-4 w-4 text-blue-500" />
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -178,6 +198,13 @@ export function InventoryTable<T extends Record<string, any>>({
                     </TableBody>
                 </Table>
             </div>
+
+            <ImageViewerModal
+                open={viewerOpen}
+                onOpenChange={setViewerOpen}
+                title={selectedTitle}
+                images={selectedImages}
+            />
 
             <div className="flex items-center justify-end space-x-2">
                 <Button

@@ -54,7 +54,9 @@ export function Sidebar({ role }: SidebarProps) {
                 <ul className="grid gap-1">
                     {links.map((link) => {
                         const Icon = link.icon
-                        const isActive = pathname === link.href || pathname.startsWith(link.href)
+                        const isActive = link.href === '/admin/dashboard'
+                            ? pathname === link.href
+                            : pathname === link.href || pathname.startsWith(link.href)
 
                         return (
                             <li key={link.href}>

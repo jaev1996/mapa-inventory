@@ -16,6 +16,7 @@ export const RepuestoSchema = z.object({
     idMarca: z.coerce.number().min(1, "Seleccione una marca"),
     idTipo: z.coerce.number().min(1, "Seleccione un tipo"),
     ubicRep: z.string().optional(),
+    imagenes: z.array(z.string()).optional(),
 });
 
 export const ClienteSchema = z.object({

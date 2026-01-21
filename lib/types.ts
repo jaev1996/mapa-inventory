@@ -17,6 +17,7 @@ export interface Repuesto {
     idMarca: number;
     idTipo: number;
     ubicRep: string;
+    imagenes?: string[];
     // Joined fields for display
     MarcaRepuesto?: MarcaRepuesto;
     TipoRepuesto?: TipoRepuesto;
