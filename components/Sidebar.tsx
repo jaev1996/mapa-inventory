@@ -28,6 +28,7 @@ export function Sidebar({ role }: SidebarProps) {
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Inventario', href: '/admin/dashboard/inventario/repuestos', icon: Box },
         { name: 'Gestión de Ventas', href: '/admin/dashboard/ventas', icon: ShoppingCart },
+        { name: 'Gestión de Cobros', href: '/admin/cobros', icon: CreditCard },
         { name: 'Equipo de Vendedores', href: '/admin/dashboard/vendedores', icon: Users },
         { name: 'Directorio de Clientes', href: '/admin/dashboard/clientes', icon: Users },
     ]
@@ -35,7 +36,7 @@ export function Sidebar({ role }: SidebarProps) {
     const clientLinks = [
         { name: 'Catálogo de Repuestos', href: '/dashboard/catalogo', icon: Search },
         { name: 'Mis Compras', href: '/dashboard/mis-compras', icon: ShoppingCart },
-        { name: 'Mis Pagos', href: '/dashboard/mis-pagos', icon: CreditCard },
+        { name: 'Mis Facturas y Pagos', href: '/cobros', icon: CreditCard },
         { name: 'Soporte Técnico', href: '/dashboard/soporte', icon: LifeBuoy },
     ]
 

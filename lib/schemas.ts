@@ -49,3 +49,21 @@ export const HistoricoVentaSchema = z.object({
     precioRep: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
     subtotalRep: z.coerce.number().min(0, "El subtotal debe ser mayor o igual a 0"),
 });
+
+export const CobroSchema = z.object({
+    idVenta: z.coerce.number().min(1, "ID de venta requerido"),
+    monto: z.coerce.number().min(0.01, "El monto debe ser mayor a 0"),
+    fechaPago: z.string().optional(),
+    metodoPago: z.string().min(1, "Seleccione un método de pago"),
+    referencia: z.string().optional(),
+    comprobanteUrl: z.string().optional(),
+    notas: z.string().optional(),
+});
+
+export const AprobarCobroSchema = z.object({
+    idCobro: z.coerce.number().min(1, "ID de cobro requerido"),
+    accion: z.enum(['confirmar', 'rechazar'], {
+        message: "Acción inválida"
+    }),
+    observaciones: z.string().optional(),
+});
