@@ -1,13 +1,16 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Printer, Plus, List } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import ExcelJS from 'exceljs';
 import { getVentaDetails } from '@/app/actions/sales-actions';
 
-export default function VentaExitosaPage() {
+function VentaExitosaContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const codigoVenta = searchParams.get('codigo');
@@ -233,5 +236,17 @@ export default function VentaExitosaPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function VentaExitosaPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        }>
+            <VentaExitosaContent />
+        </Suspense>
     );
 }
