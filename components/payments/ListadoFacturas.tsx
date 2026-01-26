@@ -22,16 +22,21 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Search, Eye, DollarSign } from 'lucide-react';
-import Link from 'next/link';
+import { VentasPagosDialog } from './VentasPagosDialog';
 
 type ListadoFacturasProps = {
     facturas: FacturaEstado[];
     mostrarAcciones?: boolean;
 };
 
+import { Pagination } from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 10;
+
 export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFacturasProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [filtroEstatus, setFiltroEstatus] = useState<string>('todos');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Filter facturas
     const facturasFiltradas = facturas.filter((factura) => {
@@ -47,6 +52,27 @@ export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFac
 
         return matchesSearch && matchesEstatus;
     });
+
+    // Pagination logic
+    const totalPages = Math.ceil(facturasFiltradas.length / ITEMS_PER_PAGE);
+
+    // Ensure currentPage is valid (e.g. if filtering reduced items)
+    const validPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+    // Note: We don't prefer set state during render, so we use validPage for slicing
+    // If validPage != currentPage, we could effect-update it, but derivation is safer for now.
+
+    const startIndex = (validPage - 1) * ITEMS_PER_PAGE;
+    const currentItems = facturasFiltradas.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
+        setCurrentPage(1);
+    };
+
+    const handleFilterChange = (value: string) => {
+        setFiltroEstatus(value);
+        setCurrentPage(1);
+    };
 
     const getEstatusBadge = (estatus: string) => {
         switch (estatus) {
@@ -70,11 +96,11 @@ export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFac
                     <Input
                         placeholder="Buscar por código o cliente..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="pl-10"
                     />
                 </div>
-                <Select value={filtroEstatus} onValueChange={setFiltroEstatus}>
+                <Select value={filtroEstatus} onValueChange={handleFilterChange}>
                     <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Filtrar por estatus" />
                     </SelectTrigger>
@@ -88,9 +114,9 @@ export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFac
             </div>
 
             {/* Results count */}
-            <p className="text-sm text-muted-foreground">
-                Mostrando {facturasFiltradas.length} de {facturas.length} facturas
-            </p>
+            <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <p>Mostrando {currentItems.length} de {facturasFiltradas.length} resultados</p>
+            </div>
 
             {/* Table */}
             <div className="border rounded-lg overflow-hidden">
@@ -116,7 +142,7 @@ export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFac
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                facturasFiltradas.map((factura) => (
+                                currentItems.map((factura) => (
                                     <TableRow key={factura.codigoVenta}>
                                         <TableCell className="font-medium">{factura.codigoVenta}</TableCell>
                                         <TableCell>{factura.nombreCliente}</TableCell>
@@ -136,15 +162,14 @@ export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFac
                                         {mostrarAcciones && (
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        asChild
-                                                    >
-                                                        <Link href={`/ventas/${factura.codigoVenta}`}>
-                                                            <Eye className="w-4 h-4" />
-                                                        </Link>
-                                                    </Button>
+                                                    <VentasPagosDialog
+                                                        factura={factura}
+                                                        trigger={
+                                                            <Button size="sm" variant="outline">
+                                                                <Eye className="w-4 h-4" />
+                                                            </Button>
+                                                        }
+                                                    />
                                                     {factura.saldoPendiente > 0 && (
                                                         <RegistrarPagoDialog
                                                             factura={factura}
@@ -165,6 +190,17 @@ export function ListadoFacturas({ facturas, mostrarAcciones = true }: ListadoFac
                     </Table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-4">
+                    <Pagination
+                        currentPage={validPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            )}
         </div>
     );
 }

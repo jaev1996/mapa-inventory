@@ -28,7 +28,7 @@ export function Sidebar({ role }: SidebarProps) {
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Inventario', href: '/admin/dashboard/inventario/repuestos', icon: Box },
         { name: 'Gestión de Ventas', href: '/admin/dashboard/ventas', icon: ShoppingCart },
-        { name: 'Gestión de Cobros', href: '/admin/cobros', icon: CreditCard },
+        { name: 'Gestión de Cobros', href: '/admin/dashboard/cobros', icon: CreditCard },
         { name: 'Equipo de Vendedores', href: '/admin/dashboard/vendedores', icon: Users },
         { name: 'Directorio de Clientes', href: '/admin/dashboard/clientes', icon: Users },
     ]
@@ -43,15 +43,15 @@ export function Sidebar({ role }: SidebarProps) {
     const links = role === 'admin' ? adminLinks : clientLinks
 
     return (
-        <div className="border-r bg-gray-100/40 dark:bg-zinc-800/40 lg:block dark:border-zinc-700 min-h-screen w-64 flex flex-col">
-            <div className="flex h-14 items-center border-b px-6 lg:h-[60px] dark:border-zinc-700">
+        <div className="relative border-r bg-gray-100 dark:bg-zinc-800 lg:block dark:border-zinc-700 h-screen w-64 flex flex-col">
+            <div className="flex h-14 items-center border-b px-6 lg:h-[60px] dark:border-zinc-700 shrink-0">
                 <Link className="flex items-center gap-2 font-semibold" href="/">
                     <Box className="h-6 w-6" />
                     <span className="">Mapa Inventory</span>
                 </Link>
             </div>
 
-            <nav className="flex-1 overflow-y-auto px-4 py-4">
+            <nav className="flex-1 overflow-y-auto px-4 py-4 min-h-0 pb-40">
                 <ul className="grid gap-1">
                     {links.map((link) => {
                         const Icon = link.icon
@@ -79,7 +79,17 @@ export function Sidebar({ role }: SidebarProps) {
                 </ul>
             </nav>
 
-            <div className="p-4 border-t dark:border-zinc-700">
+            <div className="absolute bottom-0 w-full p-4 border-t dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 space-y-4">
+                <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-200/50 dark:bg-zinc-800/50">
+                    <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-600">
+                        <Users className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col overflow-hidden">
+                        <span className="text-sm font-medium truncate">Usuario</span>
+                        <span className="text-xs text-muted-foreground truncate capitalize">{role}</span>
+                    </div>
+                </div>
+
                 <form action={signOutAction}>
                     <Button
                         variant="ghost"

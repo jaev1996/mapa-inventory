@@ -52,6 +52,10 @@ const initialState: { message: string; data?: string } = {
     message: '',
 };
 
+import { Pagination } from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 10;
+
 export function PanelAprobacion({ pagosPendientes }: PanelAprobacionProps) {
     const [selectedPago, setSelectedPago] = useState<PagoPendiente | null>(null);
     const [accion, setAccion] = useState<'confirmar' | 'rechazar' | null>(null);
@@ -59,6 +63,7 @@ export function PanelAprobacion({ pagosPendientes }: PanelAprobacionProps) {
     const [state, formAction] = useActionState(aprobarPago, initialState);
     const [showDialog, setShowDialog] = useState(false);
     const [showComprobanteDialog, setShowComprobanteDialog] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
     const { toast } = useToast();
 
     // Handle form submission success
@@ -96,6 +101,12 @@ export function PanelAprobacion({ pagosPendientes }: PanelAprobacionProps) {
         setShowComprobanteDialog(true);
     };
 
+    // Pagination logic
+    const totalPages = Math.ceil(pagosPendientes.length / ITEMS_PER_PAGE);
+    const validPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+    const startIndex = (validPage - 1) * ITEMS_PER_PAGE;
+    const currentItems = pagosPendientes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
     return (
         <>
             <div className="border rounded-lg overflow-hidden">
@@ -122,7 +133,7 @@ export function PanelAprobacion({ pagosPendientes }: PanelAprobacionProps) {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                pagosPendientes.map((pago) => (
+                                currentItems.map((pago) => (
                                     <TableRow key={pago.idCobro}>
                                         <TableCell className="font-medium">#{pago.idCobro}</TableCell>
                                         <TableCell>{pago.venta?.codigoVenta || 'N/A'}</TableCell>
@@ -182,6 +193,17 @@ export function PanelAprobacion({ pagosPendientes }: PanelAprobacionProps) {
                     </Table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-4">
+                    <Pagination
+                        currentPage={validPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            )}
 
             {/* Confirmation Dialog */}
             <Dialog open={showDialog} onOpenChange={setShowDialog}>

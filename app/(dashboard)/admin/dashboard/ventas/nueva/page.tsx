@@ -93,7 +93,7 @@ export default function NuevaVentaPage() {
         try {
             const result = await createVenta(null, formData);
             if (result.message === 'success') {
-                router.push(`/ventas/exito?codigo=${codigoVenta}`);
+                router.push(`/admin/dashboard/ventas/exito?codigo=${codigoVenta}`);
             } else {
                 alert('Error: ' + result.message);
                 if (result.errors) {

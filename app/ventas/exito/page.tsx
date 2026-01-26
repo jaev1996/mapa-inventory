@@ -224,12 +224,12 @@ function VentaExitosaContent() {
                         {isExporting ? 'Generando...' : 'Exportar a Excel'}
                     </Button>
 
-                    <Button onClick={() => router.push('/ventas/nueva')} variant="outline" className="w-full">
+                    <Button onClick={() => router.push('/admin/dashboard/ventas/nueva')} variant="outline" className="w-full">
                         <Plus className="mr-2 h-4 w-4" />
                         Nueva Venta
                     </Button>
 
-                    <Button onClick={() => router.push('/ventas')} variant="ghost" className="w-full">
+                    <Button onClick={() => router.push('/admin/dashboard/ventas')} variant="ghost" className="w-full">
                         <List className="mr-2 h-4 w-4" />
                         Ver Lista de Ventas
                     </Button>

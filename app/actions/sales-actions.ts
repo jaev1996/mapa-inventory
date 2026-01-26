@@ -5,22 +5,54 @@ import { revalidatePath } from 'next/cache';
 import { VentaSchema, HistoricoVentaSchema } from '@/lib/schemas';
 // Removed unused imports
 
-export async function getVentas() {
-    const { data, error } = await supabase
+export interface VentasFilters {
+    idCliente?: string;
+    idVendedor?: string;
+    startDate?: string;
+    endDate?: string;
+    codigoVenta?: string;
+}
+
+export async function getVentas(filters?: VentasFilters, page = 1, pageSize = 10) {
+    let query = supabase
         .from('ventas')
         .select(`
-      *,
-      Cliente:cliente (nombreCliente),
-      Vendedor:vendedor (nombreVendedor)
-    `)
-        .order('idVenta', { ascending: false });
+            *,
+            Cliente:cliente (nombreCliente),
+            Vendedor:vendedor (nombreVendedor)
+        `, { count: 'exact' });
+
+    if (filters?.idCliente && filters.idCliente !== 'all') {
+        query = query.eq('idCliente', filters.idCliente);
+    }
+
+    if (filters?.idVendedor && filters.idVendedor !== 'all') {
+        query = query.eq('idVendedor', filters.idVendedor);
+    }
+
+    if (filters?.codigoVenta) {
+        query = query.ilike('codigoVenta', `%${filters.codigoVenta}%`);
+    }
+
+    if (filters?.startDate) {
+        // Assuming fechaVenta is a timestamp or date string
+        query = query.gte('fechaVenta', `${filters.startDate}T00:00:00`);
+    }
+
+    if (filters?.endDate) {
+        query = query.lte('fechaVenta', `${filters.endDate}T23:59:59`);
+    }
+
+    const { data, count, error } = await query
+        .order('idVenta', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
     if (error) {
         console.error('Error fetching ventas:', error);
-        return [];
+        return { data: [], count: 0 };
     }
 
-    return data;
+    return { data, count };
 }
 
 export async function getNextVentaId() {
@@ -198,4 +230,137 @@ export async function getVentaDetails(codigoVenta: string) {
     }
 
     return { ...venta, items: items || [] };
+}
+
+/**
+ * Audit Helper
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function logAuditEvent(idVenta: number, user: string, accion: string, detalles: any) {
+    await supabase.from('auditoria_ventas').insert([{
+        idVenta,
+        usuario: user, // In real app, fetch from auth
+        accion,
+        detalles,
+    }]);
+}
+
+/**
+ * Update Venta (Header and Items)
+ * Handles stock adjustments and audit logging.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function updateVenta(idVenta: number, newData: any, userId: string = 'system') {
+    // 1. Fetch current state
+    const { data: currentVenta } = await supabase
+        .from('ventas')
+        .select('*')
+        .eq('idVenta', idVenta)
+        .single();
+
+    if (!currentVenta) return { error: 'Venta no encontrada' };
+
+    const { data: currentItems } = await supabase
+        .from('historicoventas')
+        .select('*')
+        .eq('codigoVenta', currentVenta.codigoVenta);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const oldItemsMap = new Map<string, any>((currentItems || []).map((i: any) => [i.codigoRep, i]));
+    const newItems = newData.items || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newItemsMap = new Map<string, any>(newItems.map((i: any) => [i.codigoRep, i]));
+
+    // 2. Update Header
+    if (newData.idCliente !== currentVenta.idCliente || newData.idVendedor !== currentVenta.idVendedor) {
+        await supabase.from('ventas').update({
+            idCliente: newData.idCliente,
+            idVendedor: newData.idVendedor,
+            estatusVenta: newData.estatusVenta
+        }).eq('idVenta', idVenta);
+
+        await logAuditEvent(idVenta, userId, 'EDICION_HEADER', {
+            old: { idCliente: currentVenta.idCliente, idVendedor: currentVenta.idVendedor },
+            new: { idCliente: newData.idCliente, idVendedor: newData.idVendedor }
+        });
+    }
+
+    // 3. Process Items
+    // A. Removed Items (In Old but not in New) -> Return Stock
+    for (const [code, item] of oldItemsMap) {
+        if (!newItemsMap.has(code)) {
+            // Restore Stock
+            const { data: rep } = await supabase.from('repuestos').select('cantidadRep').eq('codigoRep', code).single();
+            if (rep) {
+                await supabase.from('repuestos').update({ cantidadRep: rep.cantidadRep + item.cantidadRep }).eq('codigoRep', code);
+            }
+            // Delete Item
+            await supabase.from('historicoventas').delete().eq('idHistorico', item.idHistorico); // Assuming pk exists or use match
+            // Fallback match
+            await supabase.from('historicoventas').delete()
+                .eq('codigoVenta', currentVenta.codigoVenta)
+                .eq('codigoRep', code);
+
+            await logAuditEvent(idVenta, userId, 'REMOVER_ITEM', { item: code, qtyRestored: item.cantidadRep });
+        }
+    }
+
+    // B. Added Items (In New but not in Old) -> Consume Stock
+    for (const [code, item] of newItemsMap) {
+        if (!oldItemsMap.has(code)) {
+            // Consume Stock
+            const { data: rep } = await supabase.from('repuestos').select('cantidadRep').eq('codigoRep', code).single();
+            if (!rep || rep.cantidadRep < item.cantidadRep) {
+                return { error: `Stock insuficiente para agregar ${code}` }; // Abort specific item? or Fail?
+                // For simplicity, we fail. In robust app, better validation before.
+            }
+            await supabase.from('repuestos').update({ cantidadRep: rep.cantidadRep - item.cantidadRep }).eq('codigoRep', code);
+
+            // Insert Item
+            await supabase.from('historicoventas').insert([{
+                codigoVenta: currentVenta.codigoVenta,
+                codigoRep: code,
+                cantidadRep: item.cantidadRep,
+                precioRep: item.precioRep,
+                subtotalRep: item.subtotalRep
+            }]);
+
+            await logAuditEvent(idVenta, userId, 'AGREGAR_ITEM', { item: code, qtyConsumed: item.cantidadRep });
+        }
+    }
+
+    // C. Modified Items (In Both, Qty Changed)
+    for (const [code, newItem] of newItemsMap) {
+        if (oldItemsMap.has(code)) {
+            const oldItem = oldItemsMap.get(code);
+            const qtyDiff = newItem.cantidadRep - oldItem.cantidadRep;
+
+            if (qtyDiff !== 0) {
+                const { data: rep } = await supabase.from('repuestos').select('cantidadRep').eq('codigoRep', code).single();
+                if (!rep) continue;
+
+                if (qtyDiff > 0) {
+                    // Increased Qty -> Check Stock -> Consume
+                    if (rep.cantidadRep < qtyDiff) return { error: `Stock insuficiente para aumentar ${code}` };
+                    await supabase.from('repuestos').update({ cantidadRep: rep.cantidadRep - qtyDiff }).eq('codigoRep', code);
+                } else {
+                    // Decreased Qty -> Restore Stock
+                    // qtyDiff is negative, so -qtyDiff is positive
+                    await supabase.from('repuestos').update({ cantidadRep: rep.cantidadRep - qtyDiff }).eq('codigoRep', code);
+                }
+
+                // Update Item
+                await supabase.from('historicoventas').update({
+                    cantidadRep: newItem.cantidadRep,
+                    subtotalRep: newItem.subtotalRep
+                }).eq('idHistorico', oldItem.idHistorico); // or match code/venta
+
+                await logAuditEvent(idVenta, userId, 'CAMBIO_CANTIDAD', { item: code, oldQty: oldItem.cantidadRep, newQty: newItem.cantidadRep });
+            }
+        }
+    }
+
+    revalidatePath('/admin/dashboard/ventas');
+    revalidatePath(`/admin/dashboard/ventas/${currentVenta.codigoVenta}`);
+    return { success: true };
 }

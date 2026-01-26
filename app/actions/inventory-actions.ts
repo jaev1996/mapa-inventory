@@ -255,7 +255,7 @@ export async function deleteTipo(idTipo: number) {
 
 // --- Repuestos Actions ---
 
-export async function getRepuestos(page = 1, pageSize = 10, search = '', lowStock = false) {
+export async function getRepuestos(page = 1, pageSize = 10, search = '', lowStock = false, tipo = '') {
   let query = supabase
     .from('repuestos')
     .select(`
@@ -263,15 +263,26 @@ export async function getRepuestos(page = 1, pageSize = 10, search = '', lowStoc
       MarcaRepuesto:marcarepuesto (descripMarca),
       TipoRepuesto:tiporepuesto (descripTipo)
     `, { count: 'exact' })
-    .order('descripRep', { ascending: true })
+    .order('codigoRep', { ascending: true }) // Changed to order by codigoRep
     .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (search) {
     query = query.or(`descripRep.ilike.%${search}%,codigoRep.ilike.%${search}%`);
   }
 
+  if (tipo && tipo !== 'all') {
+    query = query.eq('idTipo', parseInt(tipo));
+  }
+
   if (lowStock) {
-    // Low stock logic: items with quantity <= 5 (arbitrary threshold, adjust as needed)
+    // Low stock logic: items with quantity <= 5
+    // AND we still probably want to exclude 0 if the user said "available"? 
+    // The requirement says "only seek spare parts that are available i.e. those that are in quantity 0 don't seek them".
+    // But "show spare parts that are low on stock" might imply seeing 0s too?
+    // Usually "Low Stock" includes 0. 
+    // However, the prompt says "by default only seek spare parts that are available".
+    // If I toggle "Low Stock", I probably Want to see 0s. 
+    // Let's assume Low Stock overrides the "Available" rule to show critical items.
     query = query.lte('cantidadRep', 5);
   } else {
     // Default behavior: exclude items with 0 stock

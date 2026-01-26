@@ -13,7 +13,7 @@ export default async function AdminCobrosPage() {
 
     // Calculate statistics
     const totalPagosPendientes = pagosPendientes.length;
-    const montoPendienteAprobacion = pagosPendientes.reduce((sum, p) => sum + p.montoCobro, 0);
+    const montoPendienteAprobacion = pagosPendientes.reduce((sum, p: { monto: number }) => sum + (p.monto || 0), 0);
     const facturasPendientes = facturas.filter(f => f.saldoPendiente > 0).length;
     const totalPendienteCobro = facturas.reduce((sum, f) => sum + f.saldoPendiente, 0);
 

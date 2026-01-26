@@ -9,11 +9,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { Pencil, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
-import { useDebouncedCallback } from 'use-debounce';
 import { ImageViewerModal } from './ImageViewerModal';
 
 interface Column<T> {
@@ -45,38 +43,13 @@ export function InventoryTable<T extends Record<string, any>>({
     const { replace } = useRouter();
 
     const currentPage = Number(searchParams.get('page')) || 1;
-    const currentSearch = searchParams.get('search') || '';
-    const currentLowStock = searchParams.get('lowStock') === 'true';
-
-    const [searchTerm, setSearchTerm] = useState(currentSearch);
 
     // Viewer State
     const [viewerOpen, setViewerOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [selectedTitle, setSelectedTitle] = useState('');
 
-    const handleSearch = useDebouncedCallback((term: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('page', '1');
-        if (term) {
-            params.set('search', term);
-        } else {
-            params.delete('search');
-        }
-        replace(`${pathname}?${params.toString()}`);
-    }, 300);
-
-    const handleLowStockChange = (checked: boolean) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('page', '1');
-        if (checked) {
-            params.set('lowStock', 'true');
-        } else {
-            params.delete('lowStock');
-        }
-        replace(`${pathname}?${params.toString()}`);
-    };
-
+    // Removed internal filtering UI
     const handlePageChange = (page: number) => {
         const params = new URLSearchParams(searchParams);
         params.set('page', page.toString());
@@ -85,39 +58,8 @@ export function InventoryTable<T extends Record<string, any>>({
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
-    useEffect(() => {
-        setSearchTerm(currentSearch);
-    }, [currentSearch]);
-
-    const hasActiveFilter = currentSearch || currentLowStock;
-
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-                <Input
-                    placeholder="Buscar..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        handleSearch(e.target.value);
-                    }}
-                    className="max-w-sm"
-                />
-
-                <div className="flex items-center">
-                    <input
-                        type="checkbox"
-                        id="tableLowStock"
-                        checked={currentLowStock}
-                        onChange={(e) => handleLowStockChange(e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="tableLowStock" className="ml-2 block text-sm text-gray-900">
-                        Mostrar solo stock bajo (≤ 5)
-                    </label>
-                </div>
-            </div>
-
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -131,16 +73,7 @@ export function InventoryTable<T extends Record<string, any>>({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {!hasActiveFilter && data.length === 0 ? (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length + 1}
-                                    className="h-24 text-center text-gray-500"
-                                >
-                                    Ingrese un término de búsqueda o seleccione un filtro para ver resultados.
-                                </TableCell>
-                            </TableRow>
-                        ) : data.length === 0 ? (
+                        {data.length === 0 ? (
                             <TableRow>
                                 <TableCell
                                     colSpan={columns.length + 1}

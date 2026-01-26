@@ -46,7 +46,7 @@ export async function getFacturasConEstado(filtro?: string) {
     let query = supabase
         .from('vista_estado_facturas')
         .select('*')
-        .order('fechaVenta', { ascending: false });
+        .order('idVenta', { ascending: false });
 
     if (filtro) {
         switch (filtro) {
@@ -306,4 +306,69 @@ export async function getHistorialPagosCliente(idCliente: number) {
     }
 
     return data;
+}
+
+/**
+ * Update a payment record
+ */
+export async function updateCobro(idCobro: number, data: Partial<Cobro>) {
+    const { monto, fechaPago, metodoPago, referencia, notas } = data;
+
+    // Validate/Filter update data to ensure safety
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = {};
+    if (monto !== undefined) updateData.monto = monto;
+    if (fechaPago !== undefined) updateData.fechaPago = fechaPago;
+    if (metodoPago !== undefined) updateData.metodoPago = metodoPago;
+    if (referencia !== undefined) updateData.referencia = referencia;
+    if (notas !== undefined) updateData.notas = notas;
+
+    const { error } = await supabase
+        .from('cobros')
+        .update(updateData)
+        .eq('idCobro', idCobro);
+
+    if (error) {
+        console.error('Error updating cobro:', error);
+        return { error: error.message };
+    }
+
+    revalidatePath('/admin/dashboard/cobros');
+    return { success: true };
+}
+
+/**
+ * Delete a payment record
+ */
+export async function deleteCobro(idCobro: number) {
+    const { error } = await supabase
+        .from('cobros')
+        .delete()
+        .eq('idCobro', idCobro);
+
+    if (error) {
+        console.error('Error deleting cobro:', error);
+        return { error: error.message };
+    }
+
+    revalidatePath('/admin/dashboard/cobros');
+    return { success: true };
+}
+
+/**
+ * Get all payments for a specific sale (by idVenta)
+ */
+export async function getCobrosDeVenta(idVenta: number) {
+    const { data, error } = await supabase
+        .from('cobros')
+        .select('*')
+        .eq('idVenta', idVenta)
+        .order('fechaPago', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching cobros for venta:', error);
+        return [];
+    }
+
+    return data as Cobro[];
 }

@@ -14,7 +14,7 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-zinc-50 dark:bg-black text-black dark:text-white">
+        <div className="flex h-screen w-full bg-zinc-50 dark:bg-black text-black dark:text-white overflow-hidden">
             <Sidebar role={role} />
             <div className="flex flex-col w-full">
                 {/* Header could go here usually, e.g. for Mobile Toggle */}
