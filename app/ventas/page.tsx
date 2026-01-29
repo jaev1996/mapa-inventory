@@ -56,7 +56,7 @@ function VentasContent() {
                     endDate: searchParams.get('endDate') || undefined,
                     codigoVenta: searchParams.get('codigoVenta') || undefined,
                 };
-                const data = await getVentas(filters);
+                const { data } = await getVentas(filters);
                 setVentas(data as Venta[] || []);
             } catch (error) {
                 console.error('Error fetching ventas:', error);
@@ -148,8 +148,8 @@ function VentasContent() {
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-xl ${venta.estatusVenta === 'Completada'
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                                                 }`}>
                                                 {venta.estatusVenta}
                                             </span>
