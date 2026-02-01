@@ -29,8 +29,8 @@ export default function VendedoresPage() {
 
     const loadVendedores = useCallback(async () => {
         setIsLoading(true);
-        const data = await getVendedores();
-        setVendedores(data);
+        const res = await getVendedores(1, 1000);
+        setVendedores(res.data);
         setIsLoading(false);
     }, []);
 

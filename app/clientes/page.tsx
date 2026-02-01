@@ -33,12 +33,13 @@ export default function ClientesPage() {
     const loadData = useCallback(async () => {
         setIsLoading(true);
         // Cargar clientes y vendedores en paralelo para mayor eficiencia
-        const [clientesData, vendedoresData] = await Promise.all([
-            getClientes(),
-            getVendedores()
+        // Usamos un tamaño de página grande para estas vistas sin paginación implementada aún
+        const [clientesRes, vendedoresRes] = await Promise.all([
+            getClientes(1, 1000),
+            getVendedores(1, 1000)
         ]);
-        setClientes(clientesData);
-        setVendedores(vendedoresData);
+        setClientes(clientesRes.data);
+        setVendedores(vendedoresRes.data);
         setIsLoading(false);
     }, []);
 
