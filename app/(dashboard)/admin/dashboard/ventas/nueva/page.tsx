@@ -30,10 +30,9 @@ export default function NuevaVentaPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [tipoPago, setTipoPago] = useState('Contado');
 
-    // Load initial data
     useEffect(() => {
-        getClientes().then(setClientes).catch(console.error);
-        getVendedores().then(setVendedores).catch(console.error);
+        getClientes(1, 1000).then(res => setClientes(res.data)).catch(console.error);
+        getVendedores(1, 1000).then(res => setVendedores(res.data)).catch(console.error);
         getNextVentaId().then(setCodigoVenta).catch(console.error);
     }, []);
 

@@ -14,18 +14,34 @@ export interface Vendedor {
 }
 
 // 1. READ (Leer todos los vendedores)
-export async function getVendedores(): Promise<Vendedor[]> {
-    const { data, error } = await supabase
+export interface VendedorFilters {
+    nombre?: string;
+    codigo?: string;
+}
+
+export async function getVendedores(page = 1, pageSize = 10, filters?: VendedorFilters): Promise<{ data: Vendedor[], count: number }> {
+    let query = supabase
         .from('vendedor')
-        .select('*')
-        .order('nombreVendedor', { ascending: true });
+        .select('*', { count: 'exact' });
+
+    if (filters?.nombre) {
+        query = query.ilike('nombreVendedor', `%${filters.nombre}%`);
+    }
+
+    if (filters?.codigo) {
+        query = query.ilike('codigoVendedor', `%${filters.codigo}%`);
+    }
+
+    const { data, count, error } = await query
+        .order('nombreVendedor', { ascending: true })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
     if (error) {
         console.error('Error al obtener vendedores:', error);
-        return [];
+        return { data: [], count: 0 };
     }
 
-    return data as Vendedor[];
+    return { data: data as Vendedor[], count: count || 0 };
 }
 
 // 2. CREATE (Crear un nuevo vendedor)

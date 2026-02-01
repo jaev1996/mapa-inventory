@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { VentaSchema, HistoricoVentaSchema } from '@/lib/schemas';
 // Removed unused imports
@@ -13,7 +13,13 @@ export interface VentasFilters {
     codigoVenta?: string;
 }
 
+export interface AuditFilters {
+    codigoVenta?: string;
+    usuario?: string;
+}
+
 export async function getVentas(filters?: VentasFilters, page = 1, pageSize = 10) {
+    const supabase = await createClient();
     let query = supabase
         .from('ventas')
         .select(`
@@ -56,6 +62,7 @@ export async function getVentas(filters?: VentasFilters, page = 1, pageSize = 10
 }
 
 export async function getNextVentaId() {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('ventas')
         .select('codigoVenta')
@@ -83,6 +90,7 @@ export async function getNextVentaId() {
 }
 
 export async function createVenta(prevState: unknown, formData: FormData) {
+    const supabase = await createClient();
     // Extract data from FormData
     // Note: Since we are likely sending a complex object (items), we might need to parse JSON from a hidden field
     // or expect the client to send structured data. 
@@ -199,6 +207,7 @@ export async function createVenta(prevState: unknown, formData: FormData) {
 }
 
 export async function getVentaDetails(codigoVenta: string) {
+    const supabase = await createClient();
     // Fetch venta main record
     const { data: venta, error: ventaError } = await supabase
         .from('ventas')
@@ -236,13 +245,29 @@ export async function getVentaDetails(codigoVenta: string) {
  * Audit Helper
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAuditEvent(idVenta: number, user: string, accion: string, detalles: any) {
-    await supabase.from('auditoria_ventas').insert([{
+async function logAuditEvent(idVenta: number, user: string, accion: string, detalles: any, observaciones?: string) {
+    const supabase = await createClient();
+
+    // Si el usuario es 'system', intentamos obtener el usuario real de la sesión
+    let finalUser = user;
+    if (user === 'system') {
+        const { data: { user: sessionUser } } = await supabase.auth.getUser();
+        if (sessionUser) {
+            finalUser = sessionUser.email || sessionUser.id;
+        }
+    }
+
+    const { error } = await supabase.from('auditoria_ventas').insert([{
         idVenta,
-        usuario: user, // In real app, fetch from auth
+        usuario: finalUser,
         accion,
         detalles,
+        observaciones,
     }]);
+
+    if (error) {
+        console.error('Error logging audit event:', error);
+    }
 }
 
 /**
@@ -250,7 +275,8 @@ async function logAuditEvent(idVenta: number, user: string, accion: string, deta
  * Handles stock adjustments and audit logging.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function updateVenta(idVenta: number, newData: any, userId: string = 'system') {
+export async function updateVenta(idVenta: number, newData: any, userId: string = 'system', observaciones?: string) {
+    const supabase = await createClient();
     // 1. Fetch current state
     const { data: currentVenta } = await supabase
         .from('ventas')
@@ -282,7 +308,7 @@ export async function updateVenta(idVenta: number, newData: any, userId: string 
         await logAuditEvent(idVenta, userId, 'EDICION_HEADER', {
             old: { idCliente: currentVenta.idCliente, idVendedor: currentVenta.idVendedor },
             new: { idCliente: newData.idCliente, idVendedor: newData.idVendedor }
-        });
+        }, observaciones);
     }
 
     // 3. Process Items
@@ -301,7 +327,7 @@ export async function updateVenta(idVenta: number, newData: any, userId: string 
                 .eq('codigoVenta', currentVenta.codigoVenta)
                 .eq('codigoRep', code);
 
-            await logAuditEvent(idVenta, userId, 'REMOVER_ITEM', { item: code, qtyRestored: item.cantidadRep });
+            await logAuditEvent(idVenta, userId, 'REMOVER_ITEM', { item: code, qtyRestored: item.cantidadRep }, observaciones);
         }
     }
 
@@ -325,7 +351,7 @@ export async function updateVenta(idVenta: number, newData: any, userId: string 
                 subtotalRep: item.subtotalRep
             }]);
 
-            await logAuditEvent(idVenta, userId, 'AGREGAR_ITEM', { item: code, qtyConsumed: item.cantidadRep });
+            await logAuditEvent(idVenta, userId, 'AGREGAR_ITEM', { item: code, qtyConsumed: item.cantidadRep }, observaciones);
         }
     }
 
@@ -355,7 +381,7 @@ export async function updateVenta(idVenta: number, newData: any, userId: string 
                     subtotalRep: newItem.subtotalRep
                 }).eq('idHistorico', oldItem.idHistorico); // or match code/venta
 
-                await logAuditEvent(idVenta, userId, 'CAMBIO_CANTIDAD', { item: code, oldQty: oldItem.cantidadRep, newQty: newItem.cantidadRep });
+                await logAuditEvent(idVenta, userId, 'CAMBIO_CANTIDAD', { item: code, oldQty: oldItem.cantidadRep, newQty: newItem.cantidadRep }, observaciones);
             }
         }
     }
@@ -363,4 +389,33 @@ export async function updateVenta(idVenta: number, newData: any, userId: string 
     revalidatePath('/admin/dashboard/ventas');
     revalidatePath(`/admin/dashboard/ventas/${currentVenta.codigoVenta}`);
     return { success: true };
+}
+
+export async function getAuditLogs(page = 1, pageSize = 20, filters?: AuditFilters) {
+    const supabase = await createClient();
+    let query = supabase
+        .from('auditoria_ventas')
+        .select(`
+            *,
+            Venta:ventas!inner (codigoVenta)
+        `, { count: 'exact' });
+
+    if (filters?.codigoVenta) {
+        query = query.ilike('ventas.codigoVenta', `%${filters.codigoVenta}%`);
+    }
+
+    if (filters?.usuario) {
+        query = query.ilike('usuario', `%${filters.usuario}%`);
+    }
+
+    const { data, count, error } = await query
+        .order('fecha', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1);
+
+    if (error) {
+        console.error('Error fetching audit logs:', error);
+        return { data: [], count: 0 };
+    }
+
+    return { data, count };
 }

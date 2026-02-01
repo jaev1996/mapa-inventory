@@ -37,12 +37,12 @@ function VentasContent() {
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const [clientesData, vendedoresData] = await Promise.all([
+                const [clientesRes, vendedoresRes] = await Promise.all([
                     getClientes(),
                     getVendedores()
                 ]);
-                setClientes(clientesData);
-                setVendedores(vendedoresData);
+                setClientes(clientesRes.data);
+                setVendedores(vendedoresRes.data);
             } catch (error) {
                 console.error('Error loading initial data:', error);
             }

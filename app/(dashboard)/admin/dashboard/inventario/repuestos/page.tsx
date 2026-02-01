@@ -11,8 +11,11 @@ import { RepuestoForm } from '@/components/inventory/RepuestoForm';
 import { DeleteConfirmation } from '@/components/inventory/DeleteConfirmation';
 import { RepuestosFilters } from '@/components/inventory/RepuestosFilters';
 import { getRepuestos, deleteRepuesto, getAllTipos } from '@/app/actions/inventory-actions';
+import { generateInventoryExcel } from '@/app/actions/report-actions';
 import { Repuesto, TipoRepuesto } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
+import { FileDown, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 function RepuestosContent() {
     const searchParams = useSearchParams();
@@ -28,6 +31,34 @@ function RepuestosContent() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<Repuesto | null>(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            const base64 = await generateInventoryExcel();
+            const binaryString = window.atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Inventario_MAPA_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success('Reporte generado correctamente');
+        } catch (error) {
+            console.error('Error exporting excel:', error);
+            toast.error('Error al generar el reporte');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     // Fetch Tipos only once
     useEffect(() => {
@@ -106,10 +137,25 @@ function RepuestosContent() {
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
                 <h1 className="text-2xl font-bold">Inventario de Repuestos</h1>
-                <Button onClick={handleCreate}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nuevo Repuesto
-                </Button>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <Button
+                        variant="outline"
+                        onClick={handleExportExcel}
+                        disabled={isExporting}
+                        className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                    >
+                        {isExporting ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <FileDown className="mr-2 h-4 w-4" />
+                        )}
+                        Exportar Excel
+                    </Button>
+                    <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nuevo Repuesto
+                    </Button>
+                </div>
             </div>
 
             <RepuestosFilters tipos={tipos} />

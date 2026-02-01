@@ -28,6 +28,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRepuestos } from '@/app/actions/inventory-actions';
@@ -61,6 +63,7 @@ export function EditVentaForm({ venta, onCancel, onSuccess }: EditVentaFormProps
     const [items, setItems] = useState<VentaItem[]>(venta.items || []);
     const [loading, setLoading] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [observaciones, setObservaciones] = useState('');
 
     // Product Search State
     const [openCombobox, setOpenCombobox] = useState(false);
@@ -130,12 +133,13 @@ export function EditVentaForm({ venta, onCancel, onSuccess }: EditVentaFormProps
                 estatusVenta: venta.estatusVenta
             };
 
-            const result = await updateVenta(venta.idVenta, payload);
+            const result = await updateVenta(venta.idVenta, payload, 'system', observaciones);
 
             if (result.error) {
                 toast.error(result.error);
             } else {
                 toast.success('Venta actualizada correctamente');
+                setObservaciones('');
                 onSuccess();
             }
         } catch (error) {
@@ -295,9 +299,28 @@ export function EditVentaForm({ venta, onCancel, onSuccess }: EditVentaFormProps
                         <DialogDescription>
                             Estás a punto de modificar una nota de entrega existente.
                             Esta acción afectará el inventario (devoluciones/salidas) y quedará registrada en la auditoría.
-                            ¿Estás seguro de continuar?
                         </DialogDescription>
                     </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="observaciones">Motivo de la modificación (Opcional)</Label>
+                            <Textarea
+                                id="observaciones"
+                                placeholder="Ej: Error en cantidad ingresada previamente, devolución parcial por daño..."
+                                value={observaciones}
+                                onChange={(e) => setObservaciones(e.target.value)}
+                                className="min-h-[100px]"
+                            />
+                            <p className="text-xs text-muted-foreground italic">
+                                Este comentario será visible en la bitácora de auditoría para otros administradores.
+                            </p>
+                        </div>
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs">
+                            <strong>Aviso:</strong> Al confirmar, se recalculated el stock de todos los productos involucrados.
+                        </div>
+                    </div>
+
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancelar</Button>
                         <Button onClick={handleSave} disabled={loading}>

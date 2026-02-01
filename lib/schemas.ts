@@ -20,9 +20,9 @@ export const RepuestoSchema = z.object({
 });
 
 export const ClienteSchema = z.object({
-    codigoCliente: z.string().min(1, "El código es obligatorio"),
+    codigoCliente: z.string().regex(/^[VJEG]-\d{5,10}$/, "Formato inválido. Use V-12345678, J-12345678, etc."),
     nombreCliente: z.string().min(1, "El nombre es obligatorio"),
-    telefonoCliente: z.string().min(1, "El teléfono es obligatorio"),
+    telefonoCliente: z.string().regex(/^\+58 \d{3} \d{3} \d{4}$/, "Formato inválido. Use +58 412 123 4567"),
     direccionCliente: z.string().min(1, "La dirección es obligatoria"),
     idVendedor: z.coerce.number().min(1, "Seleccione un vendedor"),
 });
@@ -30,7 +30,7 @@ export const ClienteSchema = z.object({
 export const VendedorSchema = z.object({
     codigoVendedor: z.string().min(1, "El código es obligatorio"),
     nombreVendedor: z.string().min(1, "El nombre es obligatorio"),
-    telefonoVendedor: z.string().min(1, "El teléfono es obligatorio"),
+    telefonoVendedor: z.string().regex(/^\+58 \d{3} \d{3} \d{4}$/, "Formato inválido. Use +58 412 123 4567"),
 });
 
 export const VentaSchema = z.object({

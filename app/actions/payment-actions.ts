@@ -1,9 +1,8 @@
 'use server';
 
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { CobroSchema, AprobarCobroSchema } from '@/lib/schemas';
-import { createClient } from '@supabase/supabase-js';
 
 // Types
 export type FacturaEstado = {
@@ -43,6 +42,7 @@ export type Cobro = {
  * @param filtro - Optional filter: 'pendiente', 'pagada', 'parcial'
  */
 export async function getFacturasConEstado(filtro?: string) {
+    const supabase = await createClient();
     let query = supabase
         .from('vista_estado_facturas')
         .select('*')
@@ -76,6 +76,7 @@ export async function getFacturasConEstado(filtro?: string) {
  * Get invoice details by codigoVenta
  */
 export async function getFacturaDetalle(codigoVenta: string) {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('vista_estado_facturas')
         .select('*')
@@ -94,6 +95,7 @@ export async function getFacturaDetalle(codigoVenta: string) {
  * Get all payments for a specific invoice
  */
 export async function getCobrosDeFactura(codigoVenta: string) {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('cobros')
         .select('*')
@@ -113,6 +115,7 @@ export async function getCobrosDeFactura(codigoVenta: string) {
  * Validates that the payment amount doesn't exceed the pending balance
  */
 export async function registrarPago(prevState: unknown, formData: FormData) {
+    const supabase = await createClient();
     const rawData = {
         idVenta: formData.get('idVenta'),
         monto: formData.get('monto'),
@@ -181,16 +184,12 @@ export async function registrarPago(prevState: unknown, formData: FormData) {
  */
 export async function subirComprobante(file: File, codigoVenta: string) {
     try {
+        const supabase = await createClient();
         const fileExt = file.name.split('.').pop();
         const fileName = `${codigoVenta}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Create a Supabase client with service role for storage operations
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const storageClient = createClient(supabaseUrl, supabaseKey);
-
-        const { error } = await storageClient.storage
+        const { error } = await supabase.storage
             .from('pagos')
             .upload(filePath, file, {
                 cacheControl: '3600',
@@ -203,7 +202,7 @@ export async function subirComprobante(file: File, codigoVenta: string) {
         }
 
         // Get public URL
-        const { data: urlData } = storageClient.storage
+        const { data: urlData } = supabase.storage
             .from('pagos')
             .getPublicUrl(filePath);
 
@@ -218,6 +217,7 @@ export async function subirComprobante(file: File, codigoVenta: string) {
  * Get all pending payments for admin approval
  */
 export async function getPagosPendientes() {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('cobros')
         .select(`
@@ -242,6 +242,7 @@ export async function getPagosPendientes() {
  * Confirm or reject a payment (Admin only)
  */
 export async function aprobarPago(prevState: unknown, formData: FormData) {
+    const supabase = await createClient();
     const rawData = {
         idCobro: formData.get('idCobro'),
         accion: formData.get('accion'),
@@ -288,6 +289,7 @@ export async function aprobarPago(prevState: unknown, formData: FormData) {
  * Get payment history for a client (by clienteId)
  */
 export async function getHistorialPagosCliente(idCliente: number) {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('cobros')
         .select(`
@@ -312,6 +314,7 @@ export async function getHistorialPagosCliente(idCliente: number) {
  * Update a payment record
  */
 export async function updateCobro(idCobro: number, data: Partial<Cobro>) {
+    const supabase = await createClient();
     const { monto, fechaPago, metodoPago, referencia, notas } = data;
 
     // Validate/Filter update data to ensure safety
@@ -341,6 +344,7 @@ export async function updateCobro(idCobro: number, data: Partial<Cobro>) {
  * Delete a payment record
  */
 export async function deleteCobro(idCobro: number) {
+    const supabase = await createClient();
     const { error } = await supabase
         .from('cobros')
         .delete()
@@ -359,6 +363,7 @@ export async function deleteCobro(idCobro: number) {
  * Get all payments for a specific sale (by idVenta)
  */
 export async function getCobrosDeVenta(idVenta: number) {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('cobros')
         .select('*')

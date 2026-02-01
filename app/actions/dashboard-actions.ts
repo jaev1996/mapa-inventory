@@ -1,8 +1,9 @@
 'use server';
 
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@/lib/supabase/server';
 
 export async function getDashboardStats() {
+    const supabase = await createClient();
     try {
         // 1. Inventory Value & Count
         // Fetch all repuestos to sum (qty * price). 

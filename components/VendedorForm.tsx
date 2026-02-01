@@ -28,67 +28,85 @@ export function VendedorForm({ initialData, onClose }: VendedorFormProps) {
     const action = isEditing ? updateVendedor : createVendedor;
 
     const initialState: { message: string | null; errors?: Record<string, string[]> } = { message: null, errors: {} };
-    // useFormState para manejar la respuesta de la acción del servidor
     const [state, formAction] = useActionState(action, initialState);
 
     useEffect(() => {
-        // Si la acción fue exitosa (sin mensaje de error), cerramos el formulario.
-        // El `revalidatePath` en la server action se encargará de refrescar los datos.
-        if (state.message === '') { // Éxito
+        if (state.message === '') {
             onClose();
-        } else if (state.message) { // Error
-            // Aquí puedes mostrar el error con un toast, por ejemplo:
-            // toast.error(state.message);
         }
     }, [state, onClose]);
 
+    const formatPhone = (value: string) => {
+        let cleaned = value.replace(/\D/g, '');
+        if (cleaned.startsWith('58')) {
+            cleaned = cleaned.slice(0, 12);
+        } else {
+            cleaned = ('58' + cleaned).slice(0, 12);
+        }
+
+        if (cleaned.length <= 2) return `+${cleaned}`;
+        if (cleaned.length <= 5) return `+${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+        if (cleaned.length <= 8) return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+        return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 12)}`;
+    };
+
     return (
-        <Card className="w-full max-w-2xl mx-auto">
-            <CardHeader>
-                <CardTitle>{isEditing ? 'Editar Vendedor' : 'Añadir Nuevo Vendedor'}</CardTitle>
+        <Card className="w-full max-w-2xl mx-auto border-indigo-100 shadow-lg">
+            <CardHeader className="bg-indigo-50/50">
+                <CardTitle className="text-indigo-800 flex items-center gap-2">
+                    {isEditing ? '📝 Editar Vendedor' : '👔 Añadir Nuevo Vendedor'}
+                </CardTitle>
             </CardHeader>
             <form action={formAction}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-6">
                     {isEditing && <input type="hidden" name="idVendedor" value={initialData.idVendedor} />}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="codigoVendedor">Código del Vendedor</Label>
-                        <Input
-                            id="codigoVendedor"
-                            name="codigoVendedor"
-                            defaultValue={initialData?.codigoVendedor}
-                        />
-                        {state.errors?.codigoVendedor && (
-                            <p className="text-red-500 text-sm">{state.errors.codigoVendedor[0]}</p>
-                        )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="codigoVendedor">Código Interno</Label>
+                            <Input
+                                id="codigoVendedor"
+                                name="codigoVendedor"
+                                placeholder="V-001"
+                                defaultValue={initialData?.codigoVendedor}
+                            />
+                            {state.errors?.codigoVendedor && (
+                                <p className="text-red-500 text-xs font-medium">{state.errors.codigoVendedor[0]}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="telefonoVendedor">Teléfono de Contacto</Label>
+                            <Input
+                                id="telefonoVendedor"
+                                name="telefonoVendedor"
+                                placeholder="+58 412 123 4567"
+                                defaultValue={initialData?.telefonoVendedor}
+                                onChange={(e) => {
+                                    e.target.value = formatPhone(e.target.value);
+                                }}
+                            />
+                            {state.errors?.telefonoVendedor && (
+                                <p className="text-red-500 text-xs font-medium">{state.errors.telefonoVendedor[0]}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="nombreVendedor">Nombre del Vendedor</Label>
+                        <Label htmlFor="nombreVendedor">Nombre Completo</Label>
                         <Input
                             id="nombreVendedor"
                             name="nombreVendedor"
+                            placeholder="Nombre del Vendedor"
                             defaultValue={initialData?.nombreVendedor}
                         />
                         {state.errors?.nombreVendedor && (
-                            <p className="text-red-500 text-sm">{state.errors.nombreVendedor[0]}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="telefonoVendedor">Teléfono</Label>
-                        <Input
-                            id="telefonoVendedor"
-                            name="telefonoVendedor"
-                            defaultValue={initialData?.telefonoVendedor}
-                        />
-                        {state.errors?.telefonoVendedor && (
-                            <p className="text-red-500 text-sm">{state.errors.telefonoVendedor[0]}</p>
+                            <p className="text-red-500 text-sm font-medium">{state.errors.nombreVendedor[0]}</p>
                         )}
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onClose}>
+                <CardFooter className="flex justify-end gap-2 bg-gray-50/50 pt-4">
+                    <Button type="button" variant="outline" onClick={onClose} className="hover:bg-red-50 hover:text-red-600 border-red-100">
                         Cancelar
                     </Button>
                     <SubmitButton isEditing={isEditing} />

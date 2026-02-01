@@ -39,57 +39,98 @@ export function ClienteForm({ initialData, onClose, vendedores }: ClienteFormPro
     const [state, formAction] = useActionState(action, initialState);
 
     useEffect(() => {
-        if (state.message === '') { // Éxito
+        if (state.message === '') {
             onClose();
-        } else if (state.message) { // Error
-            // Aquí puedes mostrar el error con un toast
-            // alert(state.message);
         }
     }, [state, onClose]);
 
+    const formatID = (value: string) => {
+        const cleaned = value.toUpperCase().replace(/[^VJEG0-9]/g, '');
+        if (cleaned.length === 0) return '';
+        if (cleaned.length === 1) return cleaned;
+        return `${cleaned[0]}-${cleaned.slice(1, 10)}`;
+    };
+
+    const formatPhone = (value: string) => {
+        // Remove everything except numbers
+        let cleaned = value.replace(/\D/g, '');
+
+        // If it starts with 58, keep it, otherwise assume it needs +58
+        if (cleaned.startsWith('58')) {
+            cleaned = cleaned.slice(0, 12);
+        } else {
+            cleaned = ('58' + cleaned).slice(0, 12);
+        }
+
+        if (cleaned.length <= 2) return `+${cleaned}`;
+        if (cleaned.length <= 5) return `+${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+        if (cleaned.length <= 8) return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+        return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 12)}`;
+    };
+
     return (
-        <Card className="w-full max-w-2xl mx-auto">
-            <CardHeader>
-                <CardTitle>{isEditing ? 'Editar Cliente' : 'Añadir Nuevo Cliente'}</CardTitle>
+        <Card className="w-full max-w-2xl mx-auto border-blue-100 shadow-lg">
+            <CardHeader className="bg-blue-50/50">
+                <CardTitle className="text-blue-800 flex items-center gap-2">
+                    {isEditing ? '📝 Editar Cliente' : '👤 Añadir Nuevo Cliente'}
+                </CardTitle>
             </CardHeader>
             <form action={formAction}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-6">
                     {isEditing && <input type="hidden" name="idCliente" value={initialData.idCliente} />}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="codigoCliente">Código de Cliente</Label>
-                        <Input id="codigoCliente" name="codigoCliente" defaultValue={initialData?.codigoCliente} />
-                        {state.errors?.codigoCliente && (
-                            <p className="text-red-500 text-sm">{state.errors.codigoCliente[0]}</p>
-                        )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="codigoCliente">RIF / Cédula (V, J, E, G)</Label>
+                            <Input
+                                id="codigoCliente"
+                                name="codigoCliente"
+                                placeholder="V-12345678"
+                                defaultValue={initialData?.codigoCliente}
+                                onChange={(e) => {
+                                    e.target.value = formatID(e.target.value);
+                                }}
+                            />
+                            {state.errors?.codigoCliente && (
+                                <p className="text-red-500 text-xs font-medium">{state.errors.codigoCliente[0]}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="telefonoCliente">Teléfono</Label>
+                            <Input
+                                id="telefonoCliente"
+                                name="telefonoCliente"
+                                placeholder="+58 412 123 4567"
+                                defaultValue={initialData?.telefonoCliente}
+                                onChange={(e) => {
+                                    e.target.value = formatPhone(e.target.value);
+                                }}
+                            />
+                            {state.errors?.telefonoCliente && (
+                                <p className="text-red-500 text-xs font-medium">{state.errors.telefonoCliente[0]}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="nombreCliente">Nombre</Label>
+                        <Label htmlFor="nombreCliente">Nombre Completo / Razón Social</Label>
                         <Input id="nombreCliente" name="nombreCliente" defaultValue={initialData?.nombreCliente} />
                         {state.errors?.nombreCliente && (
-                            <p className="text-red-500 text-sm">{state.errors.nombreCliente[0]}</p>
+                            <p className="text-red-500 text-sm font-medium">{state.errors.nombreCliente[0]}</p>
                         )}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="telefonoCliente">Teléfono</Label>
-                        <Input id="telefonoCliente" name="telefonoCliente" defaultValue={initialData?.telefonoCliente} />
-                        {state.errors?.telefonoCliente && (
-                            <p className="text-red-500 text-sm">{state.errors.telefonoCliente[0]}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="direccionCliente">Dirección</Label>
+                        <Label htmlFor="direccionCliente">Dirección de Entrega</Label>
                         <Input id="direccionCliente" name="direccionCliente" defaultValue={initialData?.direccionCliente} />
                         {state.errors?.direccionCliente && (
-                            <p className="text-red-500 text-sm">{state.errors.direccionCliente[0]}</p>
+                            <p className="text-red-500 text-sm font-medium">{state.errors.direccionCliente[0]}</p>
                         )}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="idVendedor">Vendedor</Label>
+                        <Label htmlFor="idVendedor">Vendedor Asignado</Label>
                         <Select name="idVendedor" defaultValue={initialData?.idVendedor?.toString()}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Seleccione un vendedor" />
@@ -103,12 +144,12 @@ export function ClienteForm({ initialData, onClose, vendedores }: ClienteFormPro
                             </SelectContent>
                         </Select>
                         {state.errors?.idVendedor && (
-                            <p className="text-red-500 text-sm">{state.errors.idVendedor[0]}</p>
+                            <p className="text-red-500 text-sm font-medium">{state.errors.idVendedor[0]}</p>
                         )}
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onClose}>
+                <CardFooter className="flex justify-end gap-2 bg-gray-50/50 pt-4">
+                    <Button type="button" variant="outline" onClick={onClose} className="hover:bg-red-50 hover:text-red-600 border-red-100">
                         Cancelar
                     </Button>
                     <SubmitButton isEditing={isEditing} />

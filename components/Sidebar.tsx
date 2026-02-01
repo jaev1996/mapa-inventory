@@ -11,7 +11,8 @@ import {
     CreditCard,
     LifeBuoy,
     LogOut,
-    Search
+    Search,
+    ClipboardList
 } from 'lucide-react'
 import { UserRole } from '@/lib/types'
 import { signOutAction } from '@/app/auth/actions'
@@ -31,6 +32,7 @@ export function Sidebar({ role }: SidebarProps) {
         { name: 'Gestión de Cobros', href: '/admin/dashboard/cobros', icon: CreditCard },
         { name: 'Equipo de Vendedores', href: '/admin/dashboard/vendedores', icon: Users },
         { name: 'Directorio de Clientes', href: '/admin/dashboard/clientes', icon: Users },
+        { name: 'Auditoría de Ventas', href: '/admin/dashboard/auditoria', icon: ClipboardList },
     ]
 
     const clientLinks = [

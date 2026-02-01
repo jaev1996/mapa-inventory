@@ -16,20 +16,34 @@ export interface Cliente {
 }
 
 // ------------------------------------------------
-// 1. READ (Leer todos los clientes)
-// ------------------------------------------------
-export async function getClientes(): Promise<Cliente[]> {
-    const { data, error } = await supabase
+export interface ClienteFilters {
+    nombre?: string;
+    codigo?: string;
+}
+
+export async function getClientes(page = 1, pageSize = 10, filters?: ClienteFilters): Promise<{ data: Cliente[], count: number }> {
+    let query = supabase
         .from('cliente')
-        .select('*')
-        .order('nombreCliente', { ascending: true });
+        .select('*', { count: 'exact' });
+
+    if (filters?.nombre) {
+        query = query.ilike('nombreCliente', `%${filters.nombre}%`);
+    }
+
+    if (filters?.codigo) {
+        query = query.ilike('codigoCliente', `%${filters.codigo}%`);
+    }
+
+    const { data, count, error } = await query
+        .order('nombreCliente', { ascending: true })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
     if (error) {
         console.error('Error al obtener clientes:', error);
-        return [];
+        return { data: [], count: 0 };
     }
 
-    return data as Cliente[];
+    return { data: data as Cliente[], count: count || 0 };
 }
 
 // ------------------------------------------------

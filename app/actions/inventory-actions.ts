@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { MarcaRepuesto, TipoRepuesto, Repuesto } from '@/lib/types';
 import { MarcaSchema, TipoRepuestoSchema, RepuestoSchema } from '@/lib/schemas';
@@ -8,6 +8,7 @@ import { MarcaSchema, TipoRepuestoSchema, RepuestoSchema } from '@/lib/schemas';
 const SUPABASE_BUCKET = 'repuestos';
 
 async function uploadImages(files: File[], codigoRep: string): Promise<string[]> {
+  const supabase = await createClient();
   const uploadedUrls: string[] = [];
 
   for (const file of files) {
@@ -37,6 +38,7 @@ async function uploadImages(files: File[], codigoRep: string): Promise<string[]>
 }
 
 async function deleteStorageImages(urls: string[]) {
+  const supabase = await createClient();
   if (!urls || urls.length === 0) return;
 
   // Extract paths from URLs
@@ -72,6 +74,7 @@ async function deleteStorageImages(urls: string[]) {
 // --- MarcaRepuesto Actions ---
 
 export async function getMarcas(page = 1, pageSize = 10, search = '') {
+  const supabase = await createClient();
   let query = supabase
     .from('marcarepuesto')
     .select('*', { count: 'exact' })
@@ -93,6 +96,7 @@ export async function getMarcas(page = 1, pageSize = 10, search = '') {
 }
 
 export async function createMarca(prevState: unknown, formData: FormData) {
+  const supabase = await createClient();
   const validatedFields = MarcaSchema.safeParse({
     descripMarca: formData.get('descripMarca'),
   });
@@ -120,6 +124,7 @@ export async function createMarca(prevState: unknown, formData: FormData) {
 }
 
 export async function updateMarca(idMarca: number, prevState: unknown, formData: FormData) {
+  const supabase = await createClient();
   const validatedFields = MarcaSchema.safeParse({
     descripMarca: formData.get('descripMarca'),
   });
@@ -148,6 +153,7 @@ export async function updateMarca(idMarca: number, prevState: unknown, formData:
 }
 
 export async function deleteMarca(idMarca: number) {
+  const supabase = await createClient();
   const { error } = await supabase
     .from('marcarepuesto')
     .delete()
@@ -164,6 +170,7 @@ export async function deleteMarca(idMarca: number) {
 // --- TipoRepuesto Actions ---
 
 export async function getTipos(page = 1, pageSize = 10, search = '') {
+  const supabase = await createClient();
   let query = supabase
     .from('tiporepuesto')
     .select('*', { count: 'exact' })
@@ -185,6 +192,7 @@ export async function getTipos(page = 1, pageSize = 10, search = '') {
 }
 
 export async function createTipo(prevState: unknown, formData: FormData) {
+  const supabase = await createClient();
   const validatedFields = TipoRepuestoSchema.safeParse({
     descripTipo: formData.get('descripTipo'),
   });
@@ -212,6 +220,7 @@ export async function createTipo(prevState: unknown, formData: FormData) {
 }
 
 export async function updateTipo(idTipo: number, prevState: unknown, formData: FormData) {
+  const supabase = await createClient();
   const validatedFields = TipoRepuestoSchema.safeParse({
     descripTipo: formData.get('descripTipo'),
   });
@@ -240,6 +249,7 @@ export async function updateTipo(idTipo: number, prevState: unknown, formData: F
 }
 
 export async function deleteTipo(idTipo: number) {
+  const supabase = await createClient();
   const { error } = await supabase
     .from('tiporepuesto')
     .delete()
@@ -256,6 +266,7 @@ export async function deleteTipo(idTipo: number) {
 // --- Repuestos Actions ---
 
 export async function getRepuestos(page = 1, pageSize = 10, search = '', lowStock = false, tipo = '') {
+  const supabase = await createClient();
   let query = supabase
     .from('repuestos')
     .select(`
@@ -300,6 +311,7 @@ export async function getRepuestos(page = 1, pageSize = 10, search = '', lowStoc
 }
 
 export async function createRepuesto(prevState: unknown, formData: FormData) {
+  const supabase = await createClient();
   const validatedFields = RepuestoSchema.safeParse({
     codigoRep: formData.get('codigoRep'),
     descripRep: formData.get('descripRep'),
@@ -392,6 +404,7 @@ export async function createRepuesto(prevState: unknown, formData: FormData) {
 }
 
 export async function updateRepuesto(idRep: number, prevState: unknown, formData: FormData) {
+  const supabase = await createClient();
   const validatedFields = RepuestoSchema.safeParse({
     codigoRep: formData.get('codigoRep'),
     descripRep: formData.get('descripRep'),
@@ -502,6 +515,7 @@ export async function updateRepuesto(idRep: number, prevState: unknown, formData
 }
 
 export async function deleteRepuesto(idRep: number) {
+  const supabase = await createClient();
   const { error, data } = await supabase
     .from('repuestos')
     .delete()
@@ -529,12 +543,14 @@ export async function deleteRepuesto(idRep: number) {
 }
 
 export async function getAllMarcas() {
+  const supabase = await createClient();
   const { data, error } = await supabase.from('marcarepuesto').select('*').order('descripMarca');
   if (error) throw error;
   return data as MarcaRepuesto[];
 }
 
 export async function getAllTipos() {
+  const supabase = await createClient();
   const { data, error } = await supabase.from('tiporepuesto').select('*').order('descripTipo');
   if (error) throw error;
   return data as TipoRepuesto[];
